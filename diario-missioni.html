@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diario delle missioni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f141b;--panel:#171e28;--line:#2a3441;--text:#e6e4dc;--muted:#8b95a3;--gold:#d2b26b;--moss:#7fb69a;
+--serif:'Cormorant Garamond',Georgia,serif;--sans:'Nunito Sans',system-ui,sans-serif}
+:root[data-theme="light"]{--bg:#eef0ea;--panel:#fbfbf8;--line:#d3d8ce;--text:#1d2530;--muted:#66717f;--gold:#9a7a2c;--moss:#3f7d63}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#eef0ea;--panel:#fbfbf8;--line:#d3d8ce;--text:#1d2530;--muted:#66717f;--gold:#9a7a2c;--moss:#3f7d63}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:400 16px/1.5 var(--sans);min-height:100%;
+background-image:radial-gradient(60rem 30rem at 50% -10%,rgba(210,178,107,.08),transparent 70%)}
+main{max-width:640px;margin:0 auto;padding:36px 20px 64px}
+.tabs{display:flex;justify-content:center;gap:32px;margin-bottom:32px;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);font:600 22px var(--serif);padding:8px 4px;cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--text);border-color:var(--gold)}
+.nav{display:flex;align-items:center;justify-content:space-between}
+.nav button{background:none;border:1px solid var(--line);color:var(--text);width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:18px}
+.nav button:hover{border-color:var(--gold);color:var(--gold)}
+.nav .today{width:auto;padding:0 16px;border-radius:20px;font:600 14px var(--sans)}
+h1{font:600 clamp(34px,7vw,48px)/1.1 var(--serif);text-align:center;margin:28px 0 6px;text-transform:capitalize}
+.sub{text-align:center;color:var(--muted);margin:0 0 28px;font-size:15px}
+.bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--moss),var(--gold));transition:width .5s ease}
+#day .bar{margin-bottom:32px}
+form{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+input[type=text],input[type=url],select{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:13px 16px;border-radius:10px;font:inherit}
+input[type=text],input[type=url]{flex:1;min-width:0}
+select{max-width:170px}
+input::placeholder{color:var(--muted)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.add{background:var(--gold);color:#1a1608;border:0;border-radius:10px;padding:0 20px;min-height:46px;font:700 15px var(--sans);cursor:pointer}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid var(--line)}
+.chk{appearance:none;flex:none;width:22px;height:22px;margin:0 3px;transform:rotate(45deg) scale(.82);
+border:1.5px solid var(--gold);border-radius:4px;cursor:pointer;background:transparent;transition:background .2s}
+.chk:checked{background:var(--gold)}
+.t{flex:1;word-break:break-word;font-size:17px}
+.t small{display:block;color:var(--muted);font-size:13px}
+li.done .t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:20px;padding:4px 8px;border-radius:6px}
+.del:hover{color:#d67a7a}
+.empty{text-align:center;color:var(--muted);padding:32px 0;font-family:var(--serif);font-size:20px}
+.pj{border:1px solid var(--line);background:var(--panel);border-radius:12px;margin-bottom:14px;padding:0 18px}
+.pj summary{cursor:pointer;padding:16px 0;list-style:none}
+.pj summary::-webkit-details-marker{display:none}
+.pj .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px}
+.pj h2{font:600 26px var(--serif);margin:0}
+.pj .pct{color:var(--gold);font:600 22px var(--serif)}
+.pj .meta{color:var(--muted);font-size:13px;margin-top:6px}
+.pj .body{padding-bottom:14px}
+.pj form{margin:14px 0 4px}
+.link{background:none;border:0;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;padding:8px 0;text-decoration:underline}
+details.set{margin-top:48px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:4px 16px}
+details.set summary{cursor:pointer;padding:12px 0;color:var(--muted);font-size:14px}
+details.set p{color:var(--muted);font-size:14px;margin:0 0 12px}
+.row{display:flex;gap:10px;margin-bottom:14px}
+.row button{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:0 16px;cursor:pointer}
+#st{font-size:13px;color:var(--muted);text-align:center;margin-top:14px;min-height:20px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tb-day" aria-selected="true">Giornata</button>
+    <button role="tab" id="tb-pj" aria-selected="false">Progetti</button>
+  </div>
+
+  <section id="day">
+    <div class="nav">
+      <button id="prev" aria-label="Giorno precedente">‹</button>
+      <button id="today" class="today">Oggi</button>
+      <button id="next" aria-label="Giorno successivo">›</button>
+    </div>
+    <h1 id="title"></h1>
+    <p class="sub" id="count"></p>
+    <div class="bar"><i id="fill"></i></div>
+    <form id="f">
+      <input type="text" id="in" placeholder="Nuova missione…" maxlength="200" autocomplete="off" aria-label="Nuova missione">
+      <select id="sel" aria-label="Progetto"></select>
+      <button class="add" type="submit">Aggiungi</button>
+    </form>
+    <ul id="list"></ul>
+  </section>
+
+  <section id="pj" hidden>
+    <form id="pf">
+      <input type="text" id="pin" placeholder="Nuovo progetto…" maxlength="80" autocomplete="off" aria-label="Nuovo progetto">
+      <button class="add" type="submit">Crea progetto</button>
+    </form>
+    <div id="plist"></div>
+  </section>
+
+  <details class="set">
+    <summary>Sincronizzazione con Google Sheet</summary>
+    <p>Incolla l'URL della web app di Google Apps Script. Se lo lasci vuoto, i dati restano solo in questo browser.</p>
+    <div class="row">
+      <input type="url" id="url" placeholder="https://script.google.com/macros/s/…/exec" aria-label="URL web app">
+      <button id="save" type="button">Salva</button>
+    </div>
+  </details>
+  <div id="st"></div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const K = 'diario-missioni', KP = 'diario-progetti', KU = 'diario-missioni-url';
+let tasks = [], projects = [], url = '', day = iso(new Date()), canPush = true, view = 'day';
+const openSet = new Set();
+
+function iso(d){ const z = d.getTimezoneOffset()*60000; return new Date(d - z).toISOString().slice(0,10); }
+function load(k, fb){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch(e){ return fb; } }
+function store(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const pname = id => (projects.find(p => p.id === id) || {}).name || '';
+const fmt = (s, o) => new Date(s + 'T12:00').toLocaleDateString('it-IT', o);
+
+function row(t, showProject, showDate){
+  const li = document.createElement('li'); if (t.done) li.className = 'done';
+  const c = document.createElement('input'); c.type = 'checkbox'; c.className = 'chk'; c.checked = t.done;
+  c.setAttribute('aria-label', 'Completa: ' + t.text);
+  c.onchange = () => { t.done = c.checked; commit(); };
+  const s = document.createElement('span'); s.className = 't'; s.textContent = t.text;
+  const note = [showProject && pname(t.pid), showDate && fmt(t.date, {day:'numeric', month:'short'})].filter(Boolean).join(' · ');
+  if (note){ const m = document.createElement('small'); m.textContent = note; s.appendChild(m); }
+  const x = document.createElement('button'); x.className = 'del'; x.textContent = '×'; x.setAttribute('aria-label', 'Elimina');
+  x.onclick = () => { tasks = tasks.filter(o => o.id !== t.id); commit(); };
+  li.append(c, s, x); return li;
+}
+
+function renderDay(){
+  const isToday = day === iso(new Date());
+  $('title').textContent = isToday ? 'Oggi' : fmt(day, {weekday:'long'});
+  const mine = tasks.filter(t => t.date === day), done = mine.filter(t => t.done).length;
+  $('count').textContent = fmt(day, {day:'numeric', month:'long', year:'numeric'}) + (mine.length ? ' — ' + done + ' di ' + mine.length + ' completate' : '');
+  $('fill').style.width = mine.length ? (done / mine.length * 100) + '%' : '0';
+  const cur = $('sel').value;
+  $('sel').innerHTML = '<option value="">Nessun progetto</option>' + projects.map(p => '<option value="' + p.id + '"></option>').join('');
+  [...$('sel').options].slice(1).forEach((o, i) => o.textContent = projects[i].name);
+  $('sel').value = projects.some(p => p.id === cur) ? cur : '';
+  const ul = $('list'); ul.innerHTML = '';
+  if (!mine.length){ const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Nessuna missione per questo giorno. Scrivine una qui sopra.'; ul.appendChild(e); return; }
+  mine.forEach(t => ul.appendChild(row(t, true, false)));
+}
+
+function renderProjects(){
+  const box = $('plist'); box.innerHTML = '';
+  if (!projects.length){ const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Nessun progetto in corso. Creane uno qui sopra.'; box.appendChild(e); return; }
+  projects.forEach(p => {
+    const ts = tasks.filter(t => t.pid === p.id), d = ts.filter(t => t.done).length, pct = ts.length ? Math.round(d / ts.length * 100) : 0;
+    const det = document.createElement('details'); det.className = 'pj'; det.open = openSet.has(p.id);
+    det.ontoggle = () => det.open ? openSet.add(p.id) : openSet.delete(p.id);
+    const sm = document.createElement('summary');
+    sm.innerHTML = '<div class="top"><h2></h2><span class="pct">' + pct + '%</span></div><div class="bar"><i style="width:' + pct + '%"></i></div><div class="meta">' + d + ' di ' + ts.length + ' missioni completate</div>';
+    sm.querySelector('h2').textContent = p.name;
+    const body = document.createElement('div'); body.className = 'body';
+    const ul = document.createElement('ul');
+    ts.sort((a, b) => a.done - b.done || a.date.localeCompare(b.date)).forEach(t => ul.appendChild(row(t, false, true)));
+    const f = document.createElement('form');
+    f.innerHTML = '<input type="text" placeholder="Aggiungi missione a questo progetto…" maxlength="200" aria-label="Nuova missione del progetto"><button class="add" type="submit">Aggiungi</button>';
+    f.onsubmit = e => { e.preventDefault(); const v = f.querySelector('input').value.trim(); if (!v) return; tasks.push({id: uid(), date: iso(new Date()), text: v, done: false, pid: p.id}); openSet.add(p.id); commit(); };
+    const del = document.createElement('button'); del.className = 'link'; del.textContent = 'Elimina progetto';
+    del.onclick = () => { if (!confirm('Eliminare "' + p.name + '"? Le sue missioni restano senza progetto.')) return; projects = projects.filter(o => o.id !== p.id); tasks.forEach(t => { if (t.pid === p.id) t.pid = ''; }); commit(); };
+    body.append(ul, f, del); det.append(sm, body); box.appendChild(det);
+  });
+}
+
+function render(){ view === 'day' ? renderDay() : renderProjects(); }
+function commit(){ store(K, tasks); store(KP, projects); render(); push(); }
+
+function setView(v){
+  view = v; $('day').hidden = v !== 'day'; $('pj').hidden = v !== 'pj';
+  $('tb-day').setAttribute('aria-selected', v === 'day'); $('tb-pj').setAttribute('aria-selected', v === 'pj'); render();
+}
+
+let timer;
+function push(){
+  if (!url || !canPush) return;
+  clearTimeout(timer);
+  timer = setTimeout(async () => {
+    status('Salvataggio…');
+    try { await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({tasks, projects})}); status('Salvato sul foglio'); }
+    catch(e){ status('Sync non riuscita: controlla l\'URL. I dati sono al sicuro nel browser.'); }
+  }, 600);
+}
+async function pull(){
+  if (!url) return;
+  canPush = false; status('Carico dal foglio…');
+  try {
+    const d = await (await fetch(url)).json();
+    if (Array.isArray(d)) tasks = d; else { tasks = d.tasks || []; projects = d.projects || []; }
+    store(K, tasks); store(KP, projects); render(); status('Sincronizzato');
+  } catch(e){ status('Impossibile leggere il foglio: controlla l\'URL e i permessi.'); }
+  canPush = true;
+}
+function status(m){ $('st').textContent = m; }
+
+$('f').onsubmit = e => {
+  e.preventDefault(); const v = $('in').value.trim(); if (!v) return;
+  tasks.push({id: uid(), date: day, text: v, done: false, pid: $('sel').value}); $('in').value = ''; commit();
+};
+$('pf').onsubmit = e => {
+  e.preventDefault(); const v = $('pin').value.trim(); if (!v) return;
+  projects.push({id: uid(), name: v}); $('pin').value = ''; commit();
+};
+const shift = n => { const d = new Date(day + 'T12:00'); d.setDate(d.getDate() + n); day = iso(d); render(); };
+$('prev').onclick = () => shift(-1); $('next').onclick = () => shift(1);
+$('today').onclick = () => { day = iso(new Date()); render(); };
+$('tb-day').onclick = () => setView('day'); $('tb-pj').onclick = () => setView('pj');
+$('save').onclick = () => { url = $('url').value.trim(); store(KU, url); url ? pull() : status('Sync disattivata'); };
+
+tasks = load(K, []); projects = load(KP, []); url = load(KU, ''); $('url').value = url;
+render(); pull();
+</script>
+</body>
+</html>
