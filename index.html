@@ -36,13 +36,14 @@ input::placeholder{color:var(--muted)}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .add{background:var(--gold);color:#1a1608;border:0;border-radius:10px;padding:0 20px;min-height:46px;font:700 15px var(--sans);cursor:pointer}
 ul{list-style:none;margin:0;padding:0}
-li{display:flex;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid var(--line)}
+li{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid var(--line)}
 .chk{appearance:none;flex:none;width:22px;height:22px;margin:0 3px;transform:rotate(45deg) scale(.82);
 border:1.5px solid var(--gold);border-radius:4px;cursor:pointer;background:transparent;transition:background .2s}
 .chk:checked{background:var(--gold)}
 .t{flex:1;word-break:break-word;font-size:17px}
+li>.t{cursor:pointer}
 .t small{display:block;color:var(--muted);font-size:13px}
-li.done .t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+li.done>.t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
 .del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:20px;padding:4px 8px;border-radius:6px}
 .del:hover{color:#d67a7a}
 .empty{text-align:center;color:var(--muted);padding:32px 0;font-family:var(--serif);font-size:20px}
@@ -62,6 +63,12 @@ details.set p{color:var(--muted);font-size:14px;margin:0 0 12px}
 .row{display:flex;gap:10px;margin-bottom:14px}
 .row button{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:0 16px;cursor:pointer}
 #st{font-size:13px;color:var(--muted);text-align:center;margin-top:14px;min-height:20px}
+.panel{flex-basis:100%;padding:0 0 6px 42px}
+.panel textarea{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:8px;font:inherit;font-size:15px;resize:vertical;margin-bottom:6px}
+.panel textarea::placeholder,.panel input::placeholder{color:var(--muted)}
+.panel input[type=text]{width:100%;padding:9px 12px;font-size:15px;margin-top:8px}
+.panel li{padding:8px 0;border-bottom:0}
+.panel li .t{font-size:15px}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -113,7 +120,8 @@ details.set p{color:var(--muted);font-size:14px;margin:0 0 12px}
 const $ = id => document.getElementById(id);
 const K = 'diario-missioni', KP = 'diario-progetti', KU = 'diario-missioni-url';
 let tasks = [], projects = [], url = '', day = iso(new Date()), canPush = true, view = 'day';
-const openSet = new Set();
+const openSet = new Set(), openT = new Set();
+let focusId = null;
 
 function iso(d){ const z = d.getTimezoneOffset()*60000; return new Date(d - z).toISOString().slice(0,10); }
 function load(k, fb){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch(e){ return fb; } }
@@ -122,17 +130,48 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6
 const pname = id => (projects.find(p => p.id === id) || {}).name || '';
 const fmt = (s, o) => new Date(s + 'T12:00').toLocaleDateString('it-IT', o);
 
+function chkBox(done, label, fn){
+  const c = document.createElement('input'); c.type = 'checkbox'; c.className = 'chk'; c.checked = done;
+  c.setAttribute('aria-label', label); c.onchange = () => fn(c.checked); return c;
+}
+function delBtn(fn){
+  const x = document.createElement('button'); x.className = 'del'; x.textContent = '×'; x.setAttribute('aria-label', 'Elimina'); x.onclick = fn; return x;
+}
 function row(t, showProject, showDate){
+  t.subs = t.subs || [];
   const li = document.createElement('li'); if (t.done) li.className = 'done';
-  const c = document.createElement('input'); c.type = 'checkbox'; c.className = 'chk'; c.checked = t.done;
-  c.setAttribute('aria-label', 'Completa: ' + t.text);
-  c.onchange = () => { t.done = c.checked; commit(); };
-  const s = document.createElement('span'); s.className = 't'; s.textContent = t.text;
-  const note = [showProject && pname(t.pid), showDate && fmt(t.date, {day:'numeric', month:'short'})].filter(Boolean).join(' · ');
+  const c = chkBox(t.done, 'Completa: ' + t.text, v => { t.done = v; commit(); });
+  const s = document.createElement('span'); s.className = 't'; s.textContent = t.text; s.tabIndex = 0; s.setAttribute('role', 'button');
+  const sd = t.subs.filter(u => u.done).length;
+  const note = [showProject && pname(t.pid), showDate && fmt(t.date, {day:'numeric', month:'short'}),
+    t.subs.length && (sd + '/' + t.subs.length + ' sotto-task'), t.note && 'nota'].filter(Boolean).join(' · ');
   if (note){ const m = document.createElement('small'); m.textContent = note; s.appendChild(m); }
-  const x = document.createElement('button'); x.className = 'del'; x.textContent = '×'; x.setAttribute('aria-label', 'Elimina');
-  x.onclick = () => { tasks = tasks.filter(o => o.id !== t.id); commit(); };
-  li.append(c, s, x); return li;
+  const toggle = () => { openT.has(t.id) ? openT.delete(t.id) : openT.add(t.id); render(); };
+  s.onclick = toggle; s.onkeydown = e => { if (e.key === 'Enter') toggle(); };
+  li.append(c, s, delBtn(() => { tasks = tasks.filter(o => o.id !== t.id); commit(); }));
+  if (openT.has(t.id)) li.appendChild(panel(t));
+  return li;
+}
+function panel(t){
+  const d = document.createElement('div'); d.className = 'panel';
+  const ta = document.createElement('textarea'); ta.rows = 2; ta.placeholder = 'Aggiungi una nota…'; ta.value = t.note || ''; ta.setAttribute('aria-label', 'Nota');
+  ta.onchange = () => { t.note = ta.value.trim(); save(); };
+  const ul = document.createElement('ul');
+  t.subs.forEach(u => {
+    const li = document.createElement('li'); if (u.done) li.className = 'done';
+    const s = document.createElement('span'); s.className = 't'; s.textContent = u.text;
+    li.append(chkBox(u.done, 'Completa: ' + u.text, v => { u.done = v; commit(); }), s,
+      delBtn(() => { t.subs = t.subs.filter(o => o.id !== u.id); commit(); }));
+    ul.appendChild(li);
+  });
+  const inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 200; inp.placeholder = 'Nuovo sotto-task… (Invio per aggiungere)'; inp.setAttribute('aria-label', 'Nuovo sotto-task');
+  inp.onkeydown = e => {
+    if (e.key !== 'Enter') return; e.preventDefault();
+    const v = inp.value.trim(); if (!v) return;
+    t.subs.push({id: uid(), text: v, done: false}); focusId = t.id; commit();
+  };
+  if (focusId === t.id) setTimeout(() => { inp.focus(); focusId = null; });
+  d.append(ta, ul, inp); return d;
 }
 
 function renderDay(){
@@ -173,7 +212,8 @@ function renderProjects(){
 }
 
 function render(){ view === 'day' ? renderDay() : renderProjects(); }
-function commit(){ store(K, tasks); store(KP, projects); render(); push(); }
+function save(){ store(K, tasks); store(KP, projects); push(); }
+function commit(){ save(); render(); }
 
 function setView(v){
   view = v; $('day').hidden = v !== 'day'; $('pj').hidden = v !== 'pj';
